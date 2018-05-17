@@ -61,7 +61,7 @@ int dmst(int N, vector<Edge> E, int root) {
 
     REP(i, N){
        ret += cost[i];
-       addEdge(edge[i]);
+       if(i!=root) addEdge(edge[i]);
     }
 
     int K = 0;
