@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.stats import entropy
 import random
+import math
+import random
 class node():
     def __init__(self,boolean):
         self.isleaf = boolean
@@ -82,6 +84,70 @@ def build_tree(data, attr, pdata, alldata, depth):
             #Node.child.append(cnode)
             Node.child[i]=cnode
         return Node
+def sampleing(data,W,n):
+    i =0
+    m = max(W)
+    subs = []
+    while i!=n:
+        j = random.randint(0,n-1)
+        if random.uniform(0,m)<W[j]:
+            i+=1
+            subs.append(data[j])
+    return subs
+
+
+
+def adaboost(data,K):
+    N = len(data)
+    W = [1/N for i in range(N)]
+    learners = []
+    Weight = []
+    for i in range(K):
+        subdata = sampleing( data, W ,N)
+        attr = [i for i in range( len( subdata[0] )-1 )]
+        learners.append( build_tree(subdata,attr,subdata,subdata,1))
+        error = 0
+        predictions = []
+        for j in range(len(data)):
+            predictions.append(classify(data[j], learners[i]))
+            if predictions[j]!= data[j][-1]:
+                error +=W[j]
+        if error >0.5:
+            print("Very bad Classifire")
+            continue
+        for j in range(len(W)):
+            if predictions[j]==data[j][-1]:
+                W[j]=W[j]*error/(1-error)
+        Wsum = sum(W)
+        for j in range(len(W)):
+            W[j]=W[j]/Wsum
+        Weight.append(math.log((1-error)/error))
+    return learners,Weight
+
+def adaclassify(hypo,W,data):
+    cy,cn = 0,0
+    for i in range(len(hypo)):
+        c = classify(data,hypo[i])
+        if c==1:
+            cy+=W[i]
+        else :
+            cn+=W[i]
+    if cy>cn:
+        return 1
+    else:
+        return 0
+
+
+        
+    
+
+
+
+
+
+
+
+        
 '''
 data =[
     [0,0,0,2,0,0],

@@ -53,8 +53,8 @@ def dataclean():
 
     catdata = [ [i[1],i[3],i[9],i[5],i[6],i[7],i[8],i[13] ] for i in data ]
     catdata = [ [j.strip() for j in i ] for i in catdata ]
-
     label = [ i[-1] for i in data]
+    ##############################################
     s = list(set(label))
     s.sort()
     #s.reverse()
@@ -103,14 +103,94 @@ def dataclean():
     print(data[:4])
     attr = [i for i in range(len(data[0])-1)]
     return data, attr
+def dataclean2():
+    data = pd.read_csv("WA_Churn.csv")
+    data[data.Churn.notna() ]
+    print(len(data['Churn']))
+    label = data['Churn']
+    #print(label[:3])
+    concol =[]
+    catcol = []
+    for i in data.columns:
+        if i!='Churn' and i!='customerID':
+            print(i)
+            s = data[i]
+            if len(set(s))<=10:
+                catcol.append(i)
+            else:
+                concol.append(i)
+    condata = data[concol]
+    catdata = data[catcol]
+    for i in catcol:
+        #print('NULL VALUE',catdata[i].isnull().sum())
+        catdata[i]=catdata[i].astype('category')
+    s = list(set(label))
+    s.sort()
+    #s.reverse()
+    label = [s.index(i) for i in label]
+    #print(label[:10])
 
-data, attr = dataclean()
-node = tree.build_tree(data,attr,data,data,3)
-tree.print_tree(node)
+    con = condata
+    cat = catdata
+
+    for i in catcol:
+        print(cat.groupby(i).size())
+    for i in concol:
+        print(con.groupby(i).size())
+    #print(con.head())
+    #print(cat.head())
+
+    con = con.apply(pd.to_numeric, errors='coerce')
+    #print(con.describe())
+    #print(con.head())
+   
+    imp = SimpleImputer(missing_values=np.nan, strategy='mean')
+    imp.fit(con)
+    con = imp.transform(con)
+    
+    #print(cat.describe())
+    
+    imp2 = SimpleImputer(strategy="most_frequent")
+    cat = imp2.fit_transform(cat)
+    cat = pd.DataFrame(cat)
+    #print(cat.groupby(0).size())
+
+    encode = preprocessing.OrdinalEncoder()
+    encode.fit(cat)
+
+    cat = encode.transform(cat)
+
+    #print(cat[90:100])
+    #print(con[:10])
+    for i in range(len(con[0])):
+        print(i)
+        arr = [ j[i] for j in con ]
+        tval = get_thresold(arr,label)
+        for j in range(len(con)):
+            if con[j][i]< tval:
+                con[j][i] = 0
+            else:
+                con[j][i] =1
+    print(con[:10])
+    print(cat[:10])
+    #label = np.array(label,ndmin=2)
+    data = np.concatenate((con,cat), axis = 1).tolist()
+    for i in range(len(data)):
+        data[i].append(label[i])
+    print(data[:4])
+    attr = [i for i in range(len(data[0])-1)]
+    return data, attr
+
+        
+data, attr = dataclean2()
+#data, attr = dataclean()
+#node = tree.build_tree(data,attr,data,data,6)
+#tree.print_tree(node)
+hypos, W = tree.adaboost(data,20)
 c,w=0,0
 p, n =0,0
 for i in data:
-    res = tree.classify(i,node)
+    res = tree.adaclassify(hypos,W,i)
     #print(res)
     if res==i[-1]:
         c+=1
